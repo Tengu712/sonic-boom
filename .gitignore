@@ -1,0 +1,13 @@
+/target
+/.vscode
+
+*.exe
+*.dll
+*.pdb
+*.lib
+*.obj
+
+*.out
+*.so
+*.a
+*.o

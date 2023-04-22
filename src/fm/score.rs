@@ -1,3 +1,6 @@
+/// A auxiliary module for using MML.
+pub mod mml;
+
 pub struct Note {
     pub duration: usize,
     pub amplitude: f32,
@@ -10,8 +13,7 @@ pub struct Score {
 }
 
 impl Score {
-    // TODO: implement
-    pub fn from_mml(mml: &str) -> Self {
+    pub fn new() -> Self {
         Self {
             total_duration: 0,
             notes: Vec::new(),

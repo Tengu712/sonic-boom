@@ -109,7 +109,7 @@ impl super::PlayerImpl for AudioPlayer {
             Ok(())
         }
     }
-    
+
     fn close(self) -> Result<(), String> {
         let res = unsafe { waveOutClose(self) };
         if res != MMSYSERR_NOERROR {

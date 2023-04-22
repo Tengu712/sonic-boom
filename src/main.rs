@@ -2,6 +2,8 @@ mod fm;
 
 use fm::{api::*, generator::*, operator::*, score::*, *};
 
+const MML: &'static str = "A: v32cdee+gao5c-c";
+
 fn main() {
     let player = AudioPlayer::new().unwrap();
 
@@ -14,52 +16,9 @@ fn main() {
         total: 1.0,
         multiple: 8.0,
     };
-    let mut notes = Vec::new();
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 261.6,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 293.6,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 329.6,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 349.2,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 391.9,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 440.9,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 493.8,
-    });
-    notes.push(Note {
-        duration: 1000,
-        amplitude: 0.2,
-        frequency: 523.2,
-    });
-    let score = Score {
-        total_duration: 8000,
-        notes,
-    };
-    let wave = Generator::gen(&score, &op1, WaveType::SINE);
+
+    let scores = Score::from_mml(MML.lines().collect::<Vec<&str>>()).unwrap();
+    let wave = Generator::gen(&scores[0], &op1, WaveType::SINE);
 
     let mut handle = AudioHandle::new(&player, &wave).unwrap();
     handle.play().unwrap();

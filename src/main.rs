@@ -2,7 +2,7 @@ mod fm;
 
 use fm::{api::*, generator::*, operator::*, score::*, *};
 
-const MML: &'static str = "A: v32cdee+gao5c-c";
+const MML: &'static str = "A: v32l2cd8e8e+4g4ao5c-c";
 
 fn main() {
     let player = AudioPlayer::new().unwrap();

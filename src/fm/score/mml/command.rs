@@ -35,6 +35,7 @@ pub enum Command {
     Octave(MMLNumType),
     OctaveUp,
     OctaveDown,
+    Long(MMLNumType),
     Volume(MMLNumType),
 }
 
@@ -54,6 +55,7 @@ impl Command {
             'o' => eat_octave(chars, cc),
             '>' => Ok((Command::OctaveUp, cc + 1)),
             '<' => Ok((Command::OctaveDown, cc + 1)),
+            'l' => eat_long(chars, cc),
             'v' => eat_volume(chars, cc),
             _ => Err(format!("invalid character '{}' found", chars[cc],)),
         }
@@ -133,6 +135,18 @@ fn eat_octave(chars: &Vec<char>, cc: usize) -> Result<(Command, usize), String> 
         }
     } else {
         Err(String::from("octave parameter not found"))
+    }
+}
+
+fn eat_long(chars: &Vec<char>, cc: usize) -> Result<(Command, usize), String> {
+    if let Some((v, new_cc)) = eat_numeric(chars, cc + 1)? {
+        if v > 0 {
+            Ok((Command::Long(v), new_cc))
+        } else {
+            Err(format!("long parameter must not be 0 but found '{}'", v))
+        }
+    } else {
+        Err(String::from("long parameter not found"))
     }
 }
 

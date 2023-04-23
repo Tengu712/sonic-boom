@@ -2,7 +2,7 @@
 
 ### General
 
-All values are specified as numerical values between 0 and 255, except for the octave setting parameter.
+All values are specified as numerical values between 0 and 255.
 
 ### Note
 
@@ -26,6 +26,8 @@ Example:
 The default octave is `4`, which corresponds to the note `a` at 440Hz.
 
 ### Long
+
+* `ln`: Set long of note `n` which must not be 0.
 
 Default long is `4`.
 

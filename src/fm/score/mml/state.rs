@@ -9,7 +9,8 @@ use super::command::*;
 pub struct State {
     pub score: Score,
     octave: i32, // it must be between -3 and 4.
-    long: MMLNumType,
+    mspb: f32,   // mili seconds per beats.
+    long: f32,   // default long of note.
     amplitude: f32,
 }
 
@@ -18,7 +19,8 @@ impl State {
         Self {
             score: Score::new(),
             octave: 0,
-            long: 4,
+            mspb: 500.0,
+            long: 4.0,
             amplitude: 0.6,
         }
     }
@@ -44,6 +46,10 @@ impl State {
                 } else {
                     return Err(String::from("octave must be between 1 and 8"));
                 }
+            }
+            Command::Long(v) => {
+                self.long = *v as f32;
+                Ok(())
             }
             Command::Volume(v) => {
                 self.amplitude = *v as f32 / MMLNumType::MAX as f32;
@@ -85,12 +91,18 @@ impl State {
             _ => f, // TODO: natural
         };
         let f = f * 2.0_f32.powi(self.octave);
+        let long = if detail.long > 0 {
+            detail.long as f32
+        } else {
+            self.long
+        };
+        let duration = (self.mspb * 4.0 / long) as usize;
         let note = Note {
-            duration: 1000, // TODO:
+            duration: duration,
             frequency: f,
             amplitude: a * self.amplitude,
         };
-        self.score.total_duration += 1000; // TODO:
+        self.score.total_duration += duration;
         self.score.notes.push(note);
         Ok(())
     }

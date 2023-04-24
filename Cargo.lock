@@ -3,5 +3,19 @@
 version = 3
 
 [[package]]
-name = "sonic-boom"
+name = "sbc"
 version = "0.1.0"
+dependencies = [
+ "sbl",
+]
+
+[[package]]
+name = "sbl"
+version = "0.1.0"
+
+[[package]]
+name = "sbp"
+version = "0.1.0"
+dependencies = [
+ "sbl",
+]

@@ -6,25 +6,38 @@ use super::command::*;
 //     External                                                                                                      //
 // ================================================================================================================= //
 
-pub struct State {
-    pub score: Score,
-    octave: i32, // it must be between -3 and 4.
-    mspb: f32,   // mili seconds per beats.
-    long: f32,   // default long of note.
-    amplitude: f32,
+pub(super) struct State {
+    /// The result.
+    /// block.part_id is set when resolving part name.
+    pub(super) block: PartBlock,
+    /// Current octave.
+    /// It must be between -3 and 4.
+    octave: i32,
+    /// Current mili seconds per beats.
+    mspb: f32,
+    /// Current default long of note.
+    long: f32,
+    /// Current volume of note.
+    volume: f32,
 }
 
 impl State {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
-            score: Score::new(),
+            block: PartBlock {
+                part_id: 0,
+                source_id: 0,
+                total_duration: 0,
+                notes_count: 0,
+                notes: Vec::new(),
+            },
             octave: 0,
             mspb: 500.0,
             long: 4.0,
-            amplitude: 0.6,
+            volume: 0.6,
         }
     }
-    pub fn update(&mut self, command: &Command) -> Result<(), String> {
+    pub(super) fn update(&mut self, command: &Command) -> Result<(), String> {
         match command {
             Command::Note(detail) => self.for_note(detail),
             Command::Octave(v) => {
@@ -52,7 +65,7 @@ impl State {
                 Ok(())
             }
             Command::Volume(v) => {
-                self.amplitude = *v as f32 / MMLNumType::MAX as f32;
+                self.volume = *v as f32 / MMLNumType::MAX as f32;
                 Ok(())
             }
         }
@@ -78,7 +91,7 @@ impl State {
             NoteName::A => (440.000, 1.0),
             NoteName::B => (493.883, 1.0),
             NoteName::X => {
-                if let Some(last) = self.score.notes.last() {
+                if let Some(last) = self.block.notes.last() {
                     (last.frequency, 1.0)
                 } else {
                     return Err(String::from("The note `x` must not be the first note"));
@@ -96,14 +109,15 @@ impl State {
         } else {
             self.long
         };
-        let duration = (self.mspb * 4.0 / long) as usize;
-        let note = Note {
+        let duration = (self.mspb * 4.0 / long) as u32;
+        let note = NoteBlock {
             duration: duration,
             frequency: f,
-            amplitude: a * self.amplitude,
+            amplitude: a * self.volume,
         };
-        self.score.total_duration += duration;
-        self.score.notes.push(note);
+        self.block.total_duration += duration;
+        self.block.notes_count += 1;
+        self.block.notes.push(note);
         Ok(())
     }
 }

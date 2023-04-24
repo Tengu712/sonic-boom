@@ -4,7 +4,7 @@ use super::MMLNumType;
 //     External                                                                                                      //
 // ================================================================================================================= //
 
-pub enum NoteName {
+pub(super) enum NoteName {
     A,
     B,
     C,
@@ -16,21 +16,21 @@ pub enum NoteName {
     X,
 }
 
-pub enum NoteModulation {
+pub(super) enum NoteModulation {
     None,
     Sharp,
     Flat,
     Natural,
 }
 
-pub struct NoteCommandDetail {
-    pub name: NoteName,
-    pub modulation: NoteModulation,
-    pub long: MMLNumType,
-    pub is_dotted: bool,
+pub(super) struct NoteCommandDetail {
+    pub(super) name: NoteName,
+    pub(super) modulation: NoteModulation,
+    pub(super) long: MMLNumType,
+    pub(super) is_dotted: bool,
 }
 
-pub enum Command {
+pub(super) enum Command {
     Note(NoteCommandDetail),
     Octave(MMLNumType),
     OctaveUp,
@@ -42,7 +42,7 @@ pub enum Command {
 impl Command {
     /// A constructor.
     /// It returns (command, new char index) when it succeeded.
-    pub fn from(chars: &Vec<char>, cc: usize) -> Result<(Command, usize), String> {
+    pub(super) fn from(chars: &Vec<char>, cc: usize) -> Result<(Command, usize), String> {
         let mut cc = cc;
         while cc < chars.len() && chars[cc] == ' ' {
             cc += 1;
@@ -128,10 +128,7 @@ fn eat_octave(chars: &Vec<char>, cc: usize) -> Result<(Command, usize), String> 
         if v >= 1 && v <= 8 {
             Ok((Command::Octave(v), new_cc))
         } else {
-            Err(format!(
-                "octave parameter must be between 1 to 8 but found '{}'",
-                v
-            ))
+            Err(format!("octave parameter must be 1-8 but found '{}'", v))
         }
     } else {
         Err(String::from("octave parameter not found"))

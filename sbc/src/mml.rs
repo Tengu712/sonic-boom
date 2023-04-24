@@ -1,20 +1,32 @@
-use super::*;
+mod command;
+mod state;
 
-use super::{command::Command, state::State};
+use sbl::dat::*;
 use std::collections::HashMap;
 
-/// A function to parse an MML and create music scores for each part.
-pub fn parse(mml: Vec<&str>) -> Result<Vec<Score>, String> {
+type MMLNumType = u8;
+
+/// TODO: title, bpm, etc.
+pub(super) struct TempSongBlock {
+    pub(super) parts: HashMap<String, PartBlock>,
+}
+
+/// A function to parse a mml file into parts block.
+/// It returns a hash-map whose key is a user-defined part name and whose value is PartBlock struct whose part_id is not set.
+pub(super) fn parse(lines: Vec<String>) -> Result<TempSongBlock, String> {
+    use command::Command;
+    use state::State;
+
     let mut lc = 0;
 
     // headers
-    while lc < mml.len() && mml[lc].starts_with('#') {
-        if let Some((_, _)) = mml[lc].split_once(' ') {
+    while lc < lines.len() && lines[lc].starts_with('#') {
+        if let Some((_, _)) = lines[lc].split_once(' ') {
             // TODO: title, bpm, etc.
         } else {
             return Err(format!(
                 "parameter for a header '{}' not found : {} line",
-                mml[lc], lc
+                lines[lc], lc
             ));
         }
         lc += 1;
@@ -24,13 +36,13 @@ pub fn parse(mml: Vec<&str>) -> Result<Vec<Score>, String> {
 
     // score
     let mut states = HashMap::new();
-    while lc < mml.len() {
-        let line = mml[lc].trim();
+    while lc < lines.len() {
+        let line = lines[lc].trim();
         if line.len() == 0 {
             lc += 1;
             continue;
         }
-        if let Some((parts, command_line)) = mml[lc].split_once(':') {
+        if let Some((parts, command_line)) = lines[lc].split_once(':') {
             // parse commands
             let mut cc = 0;
             let mut commands = Vec::new();
@@ -42,22 +54,18 @@ pub fn parse(mml: Vec<&str>) -> Result<Vec<Score>, String> {
                         cc = new_cc;
                     }
                     Err(e) => {
-                        return Err(format!(
-                            "{} : {} line {} char",
-                            e,
-                            lc + 1,
-                            cc + parts.len() + 1
-                        ));
+                        return Err(format!("{} : {} line", e, lc + 1,));
                     }
                 }
             }
             // apply to all of parts
             let parts = parts.split(',').collect::<Vec<&str>>();
-            for part_str in parts {
-                if !states.contains_key(part_str) {
-                    states.insert(part_str, State::new());
+            for part in parts {
+                let part = part.to_string();
+                if !states.contains_key(&part) {
+                    states.insert(part.clone(), State::new());
                 }
-                let state = states.get_mut(part_str).unwrap();
+                let state = states.get_mut(&part).unwrap();
                 for command in &commands {
                     match state.update(command) {
                         Ok(()) => (),
@@ -71,9 +79,10 @@ pub fn parse(mml: Vec<&str>) -> Result<Vec<Score>, String> {
         lc += 1;
     }
 
-    let scores = states
-        .into_iter()
-        .map(|(_, v)| v.score)
-        .collect::<Vec<Score>>();
-    Ok(scores)
+    // build up
+    let mut parts = HashMap::new();
+    for (k, v) in states {
+        parts.insert(k, v.block);
+    }
+    Ok(TempSongBlock { parts })
 }

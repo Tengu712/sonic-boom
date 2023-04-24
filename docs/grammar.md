@@ -29,7 +29,7 @@ The default octave is `4`, which corresponds to the note `a` at 440Hz.
 
 * `ln`: Set long of note `n` which must not be 0.
 
-Default long is `4`.
+The default long is `4`.
 
 ### Volume
 

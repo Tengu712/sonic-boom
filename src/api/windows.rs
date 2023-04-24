@@ -12,7 +12,7 @@ type DWORD_PTR = ULONG_PTR;
 type LPCWAVEFORMATEX = *const WAVEFORMATEX;
 type LPSTR = *const CHAR;
 type LPHWAVEOUT = *mut HWAVEOUT;
-type LPWAVEHDR = *mut WAVEHDR;
+type LPWAVEHDR = *const WAVEHDR;
 type HWAVEOUT = *const c_void;
 type MMRESULT = UINT;
 type UINT = c_uint;
@@ -40,7 +40,7 @@ struct WAVEFORMATEX {
 
 #[repr(C)]
 #[allow(non_snake_case)]
-pub struct WAVEHDR {
+pub(crate) struct WAVEHDR {
     lpData: LPSTR,
     dwBufferLength: DWORD,
     dwBytesRecorded: DWORD,
@@ -88,9 +88,9 @@ const FORMAT: WAVEFORMATEX = WAVEFORMATEX {
 /*     Players                                                                                                       */
 /* ================================================================================================================= */
 
-pub type AudioPlayer = HWAVEOUT;
+pub(crate) type AudioPlayer = HWAVEOUT;
 
-impl super::PlayerImpl for AudioPlayer {
+impl super::AudioPlayerImpl for AudioPlayer {
     fn new() -> Result<Self, String> {
         let mut wave_out = std::ptr::null();
         let res = unsafe { waveOutOpen(&mut wave_out, WAVE_MAPPER, &FORMAT, 0, 0, CALLBACK_NULL) };
@@ -124,7 +124,7 @@ impl super::PlayerImpl for AudioPlayer {
 /*     AudioHandle                                                                                                   */
 /* ================================================================================================================= */
 
-pub struct AudioHandle {
+pub(crate) struct AudioHandle {
     player: AudioPlayer,
     header: WAVEHDR,
 }
@@ -152,8 +152,8 @@ impl super::AudioHandleImpl<AudioPlayer> for AudioHandle {
         }
     }
 
-    fn play(&mut self) -> Result<(), String> {
-        let res = unsafe { waveOutWrite(self.player, &mut self.header, SIZEOF_HEADER as UINT) };
+    fn play(&self) -> Result<(), String> {
+        let res = unsafe { waveOutWrite(self.player, &self.header, SIZEOF_HEADER as UINT) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to play wave audio : {}", res))
         } else {

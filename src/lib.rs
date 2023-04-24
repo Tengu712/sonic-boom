@@ -1,5 +1,3 @@
-use crate::api::AudioHandleImpl;
-
 pub mod dat;
 
 /// A module for playing waves on each operating system.
@@ -7,51 +5,53 @@ mod api;
 /// A module for generating wave buffer from operators and music score.
 mod synthesizer;
 
+use api::*;
+
 type WaveData = i16;
 type WaveBuffer = Vec<WaveData>;
 
 const SAMPLE_RATE: usize = 44100;
 
-pub struct SbApp {
-    err_msg: String,
-    players: Vec<api::AudioPlayer>,
+struct Part {
+    player_idx: usize,
     #[allow(dead_code)]
-    waves: Vec<Vec<WaveBuffer>>,
-    handles: Vec<Vec<api::AudioHandle>>,
+    wave: WaveBuffer,
+    handle: api::AudioHandle,
+}
+
+pub struct SbApp {
+    players: Vec<api::AudioPlayer>,
+    songs: Vec<Vec<Part>>,
 }
 
 impl SbApp {
     pub fn new(music_data: dat::MusicBlock) -> Result<Self, String> {
-        use api::AudioPlayerImpl;
+        // players
         let players_cnt = music_data.max_parts_count as usize;
         let mut players = Vec::with_capacity(players_cnt);
         for _ in 0..players_cnt {
             players.push(api::AudioPlayer::new()?);
         }
-        let mut waves = Vec::with_capacity(music_data.songs_count as usize);
-        let mut handles = Vec::with_capacity(music_data.songs_count as usize);
+        // songs
+        let mut songs = Vec::with_capacity(music_data.songs.len());
         for song in music_data.songs {
-            let mut t_waves = Vec::with_capacity(song.parts_count as usize);
-            let mut t_handles = Vec::with_capacity(song.parts_count as usize);
-            for _ in 0..song.parts_count {
-                t_waves.push(Vec::new());
-            }
+            // parts
+            let mut parts = Vec::with_capacity(song.parts.len());
             for part in song.parts {
                 let part_id = part.part_id as usize;
                 let wave = synthesizer::synthesize(part);
                 let handle = api::AudioHandle::new(&players[part_id], &wave)?;
-                t_waves.push(wave);
-                t_handles.push(handle);
+                let part = Part {
+                    player_idx: part_id,
+                    wave,
+                    handle,
+                };
+                parts.push(part);
             }
-            waves.push(t_waves);
-            handles.push(t_handles);
+            songs.push(parts);
         }
-        let app = Self {
-            err_msg: String::new(),
-            players,
-            waves,
-            handles,
-        };
+        // build up
+        let app = Self { players, songs };
         Ok(app)
     }
 
@@ -74,13 +74,49 @@ impl SbApp {
     }
 
     pub fn play(&self, idx: usize) -> Result<(), String> {
-        if idx >= self.handles.len() {
-            return Err(format!("tried to play a song out of index."));
-        }
-        let song = &self.handles[idx];
-        for h in song {
-            h.play()?;
+        for part in self.get_parts(idx)? {
+            part.handle.play()?;
         }
         Ok(())
+    }
+
+    pub fn pause(&self, idx: usize) -> Result<(), String> {
+        for part in self.get_parts(idx)? {
+            self.players[part.player_idx].pause()?;
+        }
+        Ok(())
+    }
+
+    pub fn resume(&self, idx: usize) -> Result<(), String> {
+        for part in self.get_parts(idx)? {
+            self.players[part.player_idx].resume()?;
+        }
+        Ok(())
+    }
+
+    pub fn stop(&self, idx: usize) -> Result<(), String> {
+        for part in self.get_parts(idx)? {
+            self.players[part.player_idx].reset()?;
+        }
+        Ok(())
+    }
+
+    pub fn close(self) -> Result<(), String> {
+        for song in self.songs {
+            for part in song {
+                part.handle.close()?;
+            }
+        }
+        for player in self.players {
+            player.close()?;
+        }
+        Ok(())
+    }
+
+    fn get_parts(&self, idx: usize) -> Result<&Vec<Part>, String> {
+        if idx >= self.songs.len() {
+            return Err(format!("tried to stop a song out of index."));
+        }
+        Ok(&self.songs[idx])
     }
 }

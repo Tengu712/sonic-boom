@@ -11,7 +11,6 @@ impl MusicBlock {
         }
         let res = Self {
             max_parts_count,
-            songs_count,
             songs,
         };
         Ok(res)
@@ -25,7 +24,7 @@ impl SongBlock {
         for _ in 0..parts_count {
             parts.push(PartBlock::from(bytes, idx)?);
         }
-        let res = Self { parts_count, parts };
+        let res = Self { parts };
         Ok(res)
     }
 }
@@ -44,7 +43,6 @@ impl PartBlock {
             part_id,
             source_id,
             total_duration,
-            notes_count,
             notes,
         };
         Ok(res)

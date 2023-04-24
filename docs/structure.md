@@ -1,7 +1,5 @@
 # Sonic Boom Compiled Music Binary Data Structure
 
-Following structures are defined at [sbl::dat](/src/dat.rs).
-
 ## Music Block
 
 1. max parts count (u8)

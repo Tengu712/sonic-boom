@@ -59,16 +59,12 @@ fn main() {
             v.part_id = *part_name_map.get(&k).unwrap();
             parts.push(v);
         }
-        let song = SongBlock {
-            parts_count: parts.len() as u8,
-            parts: parts,
-        };
-        songs.push(song);
+        parts.sort_by(|a, b| a.part_id.partial_cmp(&b.part_id).unwrap());
+        songs.push(SongBlock { parts });
     }
 
     let music = MusicBlock {
         max_parts_count,
-        songs_count: songs.len() as u32,
         songs,
     };
 

@@ -4,7 +4,7 @@ impl MusicBlock {
     pub fn to(self) -> Result<Vec<u8>, String> {
         let mut bytes = Vec::new();
         bytes.push(self.max_parts_count);
-        push_all(&mut bytes, self.songs_count);
+        push_all(&mut bytes, self.songs.len() as u32);
         for song in self.songs {
             song.to(&mut bytes)?;
         }
@@ -14,7 +14,7 @@ impl MusicBlock {
 
 impl SongBlock {
     fn to(self, bytes: &mut Vec<u8>) -> Result<(), String> {
-        bytes.push(self.parts_count);
+        bytes.push(self.parts.len() as u8);
         for part in self.parts {
             part.to(bytes)?;
         }
@@ -27,7 +27,7 @@ impl PartBlock {
         bytes.push(self.part_id);
         bytes.push(self.source_id);
         push_all(bytes, self.total_duration);
-        push_all(bytes, self.notes_count);
+        push_all(bytes, self.notes.len() as u32);
         for note in self.notes {
             note.to(bytes)?;
         }

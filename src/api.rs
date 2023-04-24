@@ -12,6 +12,8 @@ use super::*;
 
 pub(super) trait AudioPlayerImpl: Sized {
     fn new() -> Result<Self, String>;
+    fn pause(&self) -> Result<(), String>;
+    fn resume(&self) -> Result<(), String>;
     /// A method to reset sound buffer.
     /// If there is data in its queue, it will all be cleared.
     fn reset(&self) -> Result<(), String>;
@@ -26,6 +28,5 @@ pub(super) trait AudioHandleImpl<P: AudioPlayerImpl>: Sized {
     /// A method to play wave sound.
     /// If an audio player is currently playing a sound, any new sound data will be enqueued into its sound buffer.
     fn play(&self) -> Result<(), String>;
-    fn is_playing(&self) -> bool;
     fn close(self) -> Result<(), String>;
 }

@@ -24,7 +24,6 @@ const CALLBACK_NULL: DWORD = 0x00000000;
 const MMSYSERR_NOERROR: MMRESULT = 0;
 const WAVE_FORMAT_PCM: WORD = 1;
 const WAVE_MAPPER: UINT = 0xffffffff;
-const WHDR_DONE: DWORD = 0x00000001;
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -62,9 +61,11 @@ extern "stdcall" {
         dwInstance: DWORD_PTR,
         fdwOpen: DWORD,
     ) -> MMRESULT;
+    fn waveOutPause(hwo: HWAVEOUT) -> MMRESULT;
     fn waveOutPrepareHeader(hwo: HWAVEOUT, pwh: LPWAVEHDR, cbwh: UINT) -> MMRESULT;
     fn waveOutUnprepareHeader(hwo: HWAVEOUT, pwh: LPWAVEHDR, cbwh: UINT) -> MMRESULT;
     fn waveOutReset(hwo: HWAVEOUT) -> MMRESULT;
+    fn waveOutRestart(hwo: HWAVEOUT) -> MMRESULT;
     fn waveOutWrite(hwo: HWAVEOUT, pwh: LPWAVEHDR, cbwh: UINT) -> MMRESULT;
 }
 
@@ -100,7 +101,22 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(wave_out)
         }
     }
-
+    fn pause(&self) -> Result<(), String> {
+        let res = unsafe { waveOutPause(*self) };
+        if res != MMSYSERR_NOERROR {
+            Err(format!("failed to pause a player : {}", res))
+        } else {
+            Ok(())
+        }
+    }
+    fn resume(&self) -> Result<(), String> {
+        let res = unsafe { waveOutRestart(*self) };
+        if res != MMSYSERR_NOERROR {
+            Err(format!("failed to resume a player : {}", res))
+        } else {
+            Ok(())
+        }
+    }
     fn reset(&self) -> Result<(), String> {
         let res = unsafe { waveOutReset(*self) };
         if res != MMSYSERR_NOERROR {
@@ -109,7 +125,6 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(())
         }
     }
-
     fn close(self) -> Result<(), String> {
         let res = unsafe { waveOutClose(self) };
         if res != MMSYSERR_NOERROR {
@@ -159,10 +174,6 @@ impl super::AudioHandleImpl<AudioPlayer> for AudioHandle {
         } else {
             Ok(())
         }
-    }
-
-    fn is_playing(&self) -> bool {
-        (self.header.dwFlags & WHDR_DONE) == 0
     }
 
     fn close(mut self) -> Result<(), String> {

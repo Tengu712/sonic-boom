@@ -28,7 +28,6 @@ impl State {
                 part_id: 0,
                 source_id: 0,
                 total_duration: 0,
-                notes_count: 0,
                 notes: Vec::new(),
             },
             octave: 0,
@@ -116,7 +115,6 @@ impl State {
             amplitude: a * self.volume,
         };
         self.block.total_duration += duration;
-        self.block.notes_count += 1;
         self.block.notes.push(note);
         Ok(())
     }

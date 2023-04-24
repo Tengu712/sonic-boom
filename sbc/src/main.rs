@@ -16,8 +16,24 @@ fn main() {
         return;
     }
 
-    let mut temp_songs = Vec::with_capacity(args.len());
+    // prepare
+    let mut operators = Vec::new();
+    operators.push(OperatorBlock {
+        attack: 0,
+        decay: 0,
+        sustain: 0,
+        release: 0,
+        total: 255,
+        multiple: 10,
+    });
+    let mut operator_names = HashMap::new();
+    operator_names.insert(String::from("sine"), 0);
+    let mut part_names = HashMap::new();
+
+    // parse MML files
+    let mut songs = Vec::with_capacity(args.len());
     for arg in args {
+        // open and read file
         let file = match File::open(arg) {
             Ok(n) => n,
             Err(e) => {
@@ -29,45 +45,45 @@ fn main() {
             .lines()
             .collect::<Result<Vec<String>, _>>()
             .unwrap();
-        let temp_song = match mml::parse(lines) {
+        // parse
+        let result = match mml::parse(lines) {
             Ok(n) => n,
             Err(e) => {
                 eprintln!("sbc error: {arg} : {e}");
                 exit(1);
             }
         };
-        temp_songs.push(temp_song);
-    }
-
-    // part name mapping
-    let mut max_parts_count: u8 = 0;
-    let mut part_name_map = HashMap::new();
-    for temp_song in temp_songs.iter() {
-        for k in temp_song.parts.keys() {
-            if part_name_map.contains_key(k) {
-                continue;
+        // map operators
+        for (k, v) in result.operators {
+            if operator_names.contains_key(&k) {
+                eprintln!("sbc error: operator '{k}' is redefined");
+                exit(1);
             }
-            part_name_map.insert(k.clone(), max_parts_count);
-            max_parts_count += 1;
+            operator_names.insert(k, operators.len());
+            operators.push(v);
         }
-    }
-    // convert part name to id
-    let mut songs = Vec::with_capacity(temp_songs.len());
-    for temp_song in temp_songs {
-        let mut parts = Vec::with_capacity(temp_song.parts.len());
-        for (k, mut v) in temp_song.parts {
-            v.part_id = *part_name_map.get(&k).unwrap();
+        // map parts
+        let mut parts = Vec::new();
+        for (k, mut v) in result.parts {
+            if let Some(n) = part_names.get(&k) {
+                v.part_id = *n as u8;
+            } else {
+                v.part_id = part_names.len() as u8;
+                part_names.insert(k, part_names.len());
+            }
             parts.push(v);
         }
-        parts.sort_by(|a, b| a.part_id.partial_cmp(&b.part_id).unwrap());
+        parts.sort_by(|a, b| a.part_id.cmp(&b.part_id));
+        // finish
         songs.push(SongBlock { parts });
     }
 
+    // output
     let music = MusicBlock {
-        max_parts_count,
+        max_parts_count: part_names.len() as u8,
+        operators,
         songs,
     };
-
     let mut out = match File::create("./music.dat") {
         Ok(n) => n,
         Err(e) => {

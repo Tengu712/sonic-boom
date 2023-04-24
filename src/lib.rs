@@ -16,11 +16,11 @@ struct Part {
     player_idx: usize,
     #[allow(dead_code)]
     wave: WaveBuffer,
-    handle: api::AudioHandle,
+    handle: AudioHandle,
 }
 
 pub struct SbApp {
-    players: Vec<api::AudioPlayer>,
+    players: Vec<AudioPlayer>,
     songs: Vec<Vec<Part>>,
 }
 
@@ -30,8 +30,13 @@ impl SbApp {
         let players_cnt = music_data.max_parts_count as usize;
         let mut players = Vec::with_capacity(players_cnt);
         for _ in 0..players_cnt {
-            players.push(api::AudioPlayer::new()?);
+            players.push(AudioPlayer::new()?);
         }
+        // operators
+        let operators = music_data.operators;
+        // algorythms
+        let mut algorythm = Vec::new();
+        algorythm.push(synthesizer::AlgorythmCmd::RUN(0));
         // songs
         let mut songs = Vec::with_capacity(music_data.songs.len());
         for song in music_data.songs {
@@ -39,7 +44,7 @@ impl SbApp {
             let mut parts = Vec::with_capacity(song.parts.len());
             for part in song.parts {
                 let part_id = part.part_id as usize;
-                let wave = synthesizer::synthesize(part);
+                let wave = synthesizer::synthesize(part, &operators, &algorythm);
                 let handle = api::AudioHandle::new(&players[part_id], &wave)?;
                 let part = Part {
                     player_idx: part_id,

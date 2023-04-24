@@ -7,17 +7,20 @@ use std::collections::HashMap;
 type MMLNumType = u8;
 
 /// TODO: title, bpm, etc.
-pub(super) struct TempSongBlock {
+pub(super) struct ParsingResult {
+    pub(super) operators: HashMap<String, OperatorBlock>,
     pub(super) parts: HashMap<String, PartBlock>,
 }
 
-/// A function to parse a mml file into parts block.
-/// It returns a hash-map whose key is a user-defined part name and whose value is PartBlock struct whose part_id is not set.
-pub(super) fn parse(lines: Vec<String>) -> Result<TempSongBlock, String> {
+/// A function to parse and simulate a mml file.
+/// It returns a hash-map whose key is a user-defined part name
+/// and whose value is PartBlock struct whose part_id and source_id is not set.
+pub(super) fn parse(lines: Vec<String>) -> Result<ParsingResult, String> {
     use command::Command;
     use state::State;
 
     let mut lc = 0;
+    let operators = HashMap::new();
 
     // headers
     while lc < lines.len() && lines[lc].starts_with('#') {
@@ -84,5 +87,5 @@ pub(super) fn parse(lines: Vec<String>) -> Result<TempSongBlock, String> {
     for (k, v) in states {
         parts.insert(k, v.block);
     }
-    Ok(TempSongBlock { parts })
+    Ok(ParsingResult { operators, parts })
 }

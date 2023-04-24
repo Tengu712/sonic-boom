@@ -4,6 +4,11 @@ impl MusicBlock {
     pub fn from(bytes: Vec<u8>) -> Result<Self, String> {
         let mut idx = 0;
         let max_parts_count = get_u8(&bytes, &mut idx)?;
+        let operators_count = get_u8(&bytes, &mut idx)?;
+        let mut operators = Vec::with_capacity(operators_count as usize);
+        for _ in 0..operators_count {
+            operators.push(OperatorBlock::from(&bytes, &mut idx)?);
+        }
         let songs_count = get_u32(&bytes, &mut idx)?;
         let mut songs = Vec::with_capacity(songs_count as usize);
         for _ in 0..songs_count {
@@ -11,7 +16,28 @@ impl MusicBlock {
         }
         let res = Self {
             max_parts_count,
+            operators,
             songs,
+        };
+        Ok(res)
+    }
+}
+
+impl OperatorBlock {
+    fn from(bytes: &Vec<u8>, idx: &mut usize) -> Result<Self, String> {
+        let attack = get_u8(&bytes, idx)?;
+        let decay = get_u8(&bytes, idx)?;
+        let sustain = get_u8(&bytes, idx)?;
+        let release = get_u8(&bytes, idx)?;
+        let total = get_u8(&bytes, idx)?;
+        let multiple = get_u8(&bytes, idx)?;
+        let res = Self {
+            attack,
+            decay,
+            sustain,
+            release,
+            total,
+            multiple,
         };
         Ok(res)
     }

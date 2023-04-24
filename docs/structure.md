@@ -3,8 +3,19 @@
 ## Music Block
 
 1. max parts count (u8)
+1. operators count (u8)
+1. operators (Operator Block * operators count)
 1. songs count (u32)
 1. songs (Song Block * songs count)
+
+## Operator Block
+
+1. attack (u8)
+1. decay (u8)
+1. sustain (u8)
+1. release (u8)
+1. total (u8)
+1. multiple (u8)
 
 ## Song Block
 

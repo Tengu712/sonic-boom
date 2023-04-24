@@ -4,11 +4,27 @@ impl MusicBlock {
     pub fn to(self) -> Result<Vec<u8>, String> {
         let mut bytes = Vec::new();
         bytes.push(self.max_parts_count);
+        bytes.push(self.operators.len() as u8);
+        for operator in self.operators {
+            operator.to(&mut bytes)?;
+        }
         push_all(&mut bytes, self.songs.len() as u32);
         for song in self.songs {
             song.to(&mut bytes)?;
         }
         Ok(bytes)
+    }
+}
+
+impl OperatorBlock {
+    fn to(self, bytes: &mut Vec<u8>) -> Result<(), String> {
+        bytes.push(self.attack);
+        bytes.push(self.decay);
+        bytes.push(self.sustain);
+        bytes.push(self.release);
+        bytes.push(self.total);
+        bytes.push(self.multiple);
+        Ok(())
     }
 }
 

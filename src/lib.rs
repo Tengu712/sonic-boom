@@ -10,7 +10,7 @@ use api::*;
 type WaveData = i16;
 type WaveBuffer = Vec<WaveData>;
 
-const SAMPLE_RATE: usize = 44100;
+pub const SAMPLE_RATE: usize = 44100;
 
 struct Part {
     player_idx: usize,

@@ -10,11 +10,13 @@ pub(super) struct State {
     /// The result.
     /// block.part_id is set when resolving part name.
     pub(super) block: PartBlock,
+    /// Current timestamp that represents the current time of the song being played.
+    time: u32,
     /// Current octave.
     /// It must be between -3 and 4.
     octave: i32,
-    /// Current mili seconds per beats.
-    mspb: f32,
+    /// Current seconds per beats.
+    spb: f32,
     /// Current default long of note.
     long: f32,
     /// Current volume of note.
@@ -27,11 +29,11 @@ impl State {
             block: PartBlock {
                 part_id: 0,
                 source_id: 0,
-                total_duration: 0,
                 notes: Vec::new(),
             },
+            time: 0,
             octave: 0,
-            mspb: 500.0,
+            spb: 0.5,
             long: 4.0,
             volume: 0.6,
         }
@@ -80,8 +82,13 @@ const INTERVAL_REV: f32 = 0.9438743126816934966419131566675343760075683033387428
 
 impl State {
     fn for_note(&mut self, detail: &NoteCommandDetail) -> Result<(), String> {
+        let long = if detail.long > 0 {
+            detail.long as f32
+        } else {
+            self.long
+        };
+        let gate = (self.spb * 4.0 / long * sbl::SAMPLE_RATE as f32) as u32;
         let (f, a) = match detail.name {
-            NoteName::R => (440.000, 0.0),
             NoteName::C => (261.626, 1.0),
             NoteName::D => (293.665, 1.0),
             NoteName::E => (329.628, 1.0),
@@ -96,6 +103,10 @@ impl State {
                     return Err(String::from("The note `x` must not be the first note"));
                 }
             }
+            NoteName::R => {
+                self.time += gate;
+                return Ok(());
+            }
         };
         let f = match detail.modulation {
             NoteModulation::Sharp => f * INTERVAL,
@@ -103,18 +114,13 @@ impl State {
             _ => f, // TODO: natural
         };
         let f = f * 2.0_f32.powi(self.octave);
-        let long = if detail.long > 0 {
-            detail.long as f32
-        } else {
-            self.long
-        };
-        let duration = (self.mspb * 4.0 / long) as u32;
         let note = NoteBlock {
-            duration: duration,
+            time: self.time,
+            gate,
             frequency: f,
             amplitude: a * self.volume,
         };
-        self.block.total_duration += duration;
+        self.time += gate;
         self.block.notes.push(note);
         Ok(())
     }

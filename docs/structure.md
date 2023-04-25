@@ -26,12 +26,12 @@
 
 1. part id (u8)
 1. source id (u8)
-1. total duration (u32)
 1. notes count (u32)
 1. notes (Note Block * notes count)
 
 ## Note Block
 
-1. duration (u32)
+1. time (u32)
+1. gate (u32)
 1. amplitude (f32)
 1. frequency (f32)

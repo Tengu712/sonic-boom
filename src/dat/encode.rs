@@ -42,7 +42,6 @@ impl PartBlock {
     fn to(self, bytes: &mut Vec<u8>) -> Result<(), String> {
         bytes.push(self.part_id);
         bytes.push(self.source_id);
-        push_all(bytes, self.total_duration);
         push_all(bytes, self.notes.len() as u32);
         for note in self.notes {
             note.to(bytes)?;
@@ -53,7 +52,8 @@ impl PartBlock {
 
 impl NoteBlock {
     fn to(self, bytes: &mut Vec<u8>) -> Result<(), String> {
-        push_all(bytes, self.duration);
+        push_all(bytes, self.time);
+        push_all(bytes, self.gate);
         push_all(bytes, self.amplitude.to_bits());
         push_all(bytes, self.frequency.to_bits());
         Ok(())

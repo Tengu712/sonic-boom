@@ -59,7 +59,6 @@ impl PartBlock {
     fn from(bytes: &Vec<u8>, idx: &mut usize) -> Result<Self, String> {
         let part_id = get_u8(bytes, idx)?;
         let source_id = get_u8(bytes, idx)?;
-        let total_duration = get_u32(bytes, idx)?;
         let notes_count = get_u32(bytes, idx)?;
         let mut notes = Vec::new();
         for _ in 0..notes_count {
@@ -68,7 +67,6 @@ impl PartBlock {
         let res = Self {
             part_id,
             source_id,
-            total_duration,
             notes,
         };
         Ok(res)
@@ -77,11 +75,13 @@ impl PartBlock {
 
 impl NoteBlock {
     fn from(bytes: &Vec<u8>, idx: &mut usize) -> Result<Self, String> {
-        let duration = get_u32(bytes, idx)?;
+        let time = get_u32(bytes, idx)?;
+        let gate = get_u32(bytes, idx)?;
         let amplitude = get_f32(bytes, idx)?;
         let frequency = get_f32(bytes, idx)?;
         let res = Self {
-            duration,
+            time,
+            gate,
             amplitude,
             frequency,
         };

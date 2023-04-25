@@ -1,6 +1,7 @@
 use super::{dat::*, *};
 
 const MAX_AMPLITUDE: f32 = WaveData::MAX as f32;
+const PER_SAMPLE_RATE: f32 = 1.0 / SAMPLE_RATE as f32;
 
 pub(super) enum AlgorythmCmd {
     RUN(usize),
@@ -12,45 +13,57 @@ pub(super) fn synthesize(
     operators: &Vec<OperatorBlock>,
     algorythm: &Vec<AlgorythmCmd>,
 ) -> WaveBuffer {
-    // constants
-    let k_duration = SAMPLE_RATE / 1000;
-    let k_frequency = 1.0 / SAMPLE_RATE as f32;
-    let buffer_size = part.total_duration as usize * k_duration;
-    // for all notes
-    let mut t = 0.0;
+    let notes = part.notes;
+    let buffer_size = notes[notes.len() - 1].time + notes[notes.len() - 1].gate;
+    let buffer_size = buffer_size as usize;
+    let mut living_head = 0;
     let mut buffer = Vec::with_capacity(buffer_size);
-    for note in part.notes {
-        let duration = note.duration as usize * k_duration;
-        let frequency = note.frequency * k_frequency;
-        for i in 0..duration {
-            // run algorythm
-            let mut v = 0.0;
-            for cmd in algorythm {
-                match cmd {
-                    AlgorythmCmd::RUN(n) => {
-                        let op = &operators[*n];
-                        let total = op.total as f32 / 255.0;
-                        let multiple = op.multiple as f32 / 10.0;
-                        v = sine_wave(total, multiple * frequency, t, v);
-                    }
-                }
+    for t in 0..buffer_size {
+        let mut v = 0.0;
+        for i in living_head..notes.len() {
+            let t_u32 = t as u32;
+            let time = notes[i].time;
+            if t_u32 < time {
+                break;
             }
-            // remove click noise
-            if i < 300 {
-                let i = i as f32;
-                v = v * i / 300.0;
-            } else if i > duration - 300 {
-                let i = (duration - i) as f32;
-                v = v * i / 300.0;
+            if t_u32 >= time + notes[i].gate && i <= living_head {
+                living_head += 1;
+                continue;
             }
-            // finish
-            let v = v * note.amplitude;
-            let v = (MAX_AMPLITUDE as f32 * v) as WaveData;
-            buffer.push(v);
-            t += 1.0;
+            v += eval(&notes[i], operators, algorythm, t_u32 - time);
         }
+        let v = v.min(1.0);
+        let v = (MAX_AMPLITUDE * v) as WaveData;
+        buffer.push(v);
     }
     buffer
+}
+
+/// A private function to evaluate the amplitude of a note in just one sample.
+/// The value of `t` is between 0 and note.gate.
+fn eval(note: &NoteBlock, operators: &Vec<OperatorBlock>, algorythm: &Vec<AlgorythmCmd>, t: u32) -> f32 {
+    let t_f32 = t as f32;
+    let f = note.frequency * PER_SAMPLE_RATE;
+    let mut v = 0.0;
+    // do algorythm
+    for cmd in algorythm {
+        match cmd {
+            AlgorythmCmd::RUN(n) => {
+                let op = &operators[*n];
+                let total = op.total as f32 / 255.0;
+                let multiple = op.multiple as f32 / 10.0;
+                v = sine_wave(total, multiple * f, t_f32, v);
+            }
+        }
+    }
+    // remove click noise
+    if t < 300 {
+        v = v * t as f32 / 300.0;
+    } else if t > note.gate - 300 {
+        v = v * (note.gate as f32 - t as f32) / 300.0;
+    }
+    // finish
+    v * note.amplitude
 }
 
 fn sine_wave(a: f32, f: f32, t: f32, p: f32) -> f32 {

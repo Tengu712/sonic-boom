@@ -74,7 +74,9 @@ impl State {
         } else {
             self.long
         };
-        let gate = (self.spb * 4.0 / long * sbl::SAMPLE_RATE as f32) as u32;
+        let gate = self.spb * 4.0 / long * sbl::SAMPLE_RATE as f32;
+        let gate = if detail.is_dotted { gate * 1.5 } else { gate };
+        let gate = gate as u32;
         let (f, a) = match detail.name {
             NoteName::C => (261.626, 1.0),
             NoteName::D => (293.665, 1.0),

@@ -26,8 +26,8 @@ impl OperatorBlock {
         bytes.push(self.decay);
         bytes.push(self.sustain);
         bytes.push(self.release);
-        bytes.push(self.total);
-        bytes.push(self.multiple);
+        push_all(bytes, self.total.to_bits());
+        push_all(bytes, self.multiple.to_bits());
     }
 }
 

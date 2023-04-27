@@ -47,14 +47,29 @@ fn eval(
     let t_f32 = t as f32;
     let f = note.frequency * PER_SAMPLE_RATE;
     let mut v = 0.0;
+    let mut stack = Vec::new();
     // do algorythm
     for n in commands {
         match n.command_id {
             ALGORYTHM_COMMAND_PM => {
                 let op = &operators[n.operator_id as usize];
-                let total = op.total as f32 / 255.0;
-                let multiple = op.multiple as f32 / 10.0;
-                v = sine_wave(total, multiple * f, t_f32, v);
+                v = pm(op.total, op.multiple * f, t_f32, v);
+            }
+            ALGORYTHM_COMMAND_FM => {
+                let op = &operators[n.operator_id as usize];
+                v = fm(op.total, op.multiple * f, t_f32, v);
+            }
+            ALGORYTHM_COMMAND_AM => {
+                let op = &operators[n.operator_id as usize];
+                v = am(op.total, op.multiple * f, t_f32, v);
+            }
+            ALGORYTHM_COMMAND_PUSH => {
+                stack.push(v);
+                v = 0.0;
+            }
+            ALGORYTHM_COMMAND_ADD => {
+                // TODO: error handle
+                v += stack.pop().unwrap();
             }
             c => panic!("sonic-boom error: invalid algorythm command id '{c}' found"),
         }
@@ -69,6 +84,14 @@ fn eval(
     v * note.amplitude
 }
 
-fn sine_wave(a: f32, f: f32, t: f32, p: f32) -> f32 {
+fn pm(a: f32, f: f32, t: f32, p: f32) -> f32 {
     a * f32::sin(2.0 * std::f32::consts::PI * f * t + p)
+}
+
+fn fm(a: f32, f: f32, t: f32, p: f32) -> f32 {
+    a * f32::sin(2.0 * std::f32::consts::PI * (f + p) * t)
+}
+
+fn am(a: f32, f: f32, t: f32, p: f32) -> f32 {
+    (a + p) * f32::sin(2.0 * std::f32::consts::PI * f * t)
 }

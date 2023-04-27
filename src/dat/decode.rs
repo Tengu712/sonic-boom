@@ -39,8 +39,8 @@ impl OperatorBlock {
         let decay = get_u8(&bytes, idx)?;
         let sustain = get_u8(&bytes, idx)?;
         let release = get_u8(&bytes, idx)?;
-        let total = get_u8(&bytes, idx)?;
-        let multiple = get_u8(&bytes, idx)?;
+        let total = get_f32(&bytes, idx)?;
+        let multiple = get_f32(&bytes, idx)?;
         let res = Self {
             attack,
             decay,

@@ -24,8 +24,8 @@ impl ParsingParameter {
             decay: 0,
             sustain: 0,
             release: 0,
-            total: 255,
-            multiple: 10,
+            total: 1.0,
+            multiple: 1.0,
         })]);
         let op_map = HashMap::from([(String::from("sine"), 0)]);
         // algorythm

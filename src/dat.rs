@@ -23,8 +23,8 @@ pub struct OperatorBlock {
     pub decay: u8,
     pub sustain: u8,
     pub release: u8,
-    pub total: u8,
-    pub multiple: u8,
+    pub total: f32,
+    pub multiple: f32,
 }
 
 #[derive(Debug)]

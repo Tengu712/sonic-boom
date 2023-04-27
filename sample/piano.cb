@@ -1,6 +1,6 @@
 #Title square C
 
-'op 0 0 0 0 255 20
+'op 0 0 0 0 1 2
 
 @piano op sine
 

@@ -13,8 +13,8 @@ pub(super) fn parse(line: &str, param: &mut ParsingParameter) -> Result<()> {
         decay: parse_parameter(splitted[2])?,
         sustain: parse_parameter(splitted[3])?,
         release: parse_parameter(splitted[4])?,
-        total: parse_parameter(splitted[5])?,
-        multiple: parse_parameter(splitted[6])?,
+        total: parse_float(splitted[5])?,
+        multiple: parse_float(splitted[6])?,
     };
     // finish
     if let Some(n) = param.op_map.get(&name) {
@@ -35,6 +35,15 @@ fn parse_parameter(p: &str) -> Result<MMLNumType> {
         format!(
             "operator parameter must be {} bytes number",
             std::mem::size_of::<MMLNumType>()
+        )
+    })
+}
+
+fn parse_float(p: &str) -> Result<f32> {
+    p.parse::<f32>().map_err(|_| {
+        format!(
+            "operator parameter must be {} bytes floating number",
+            std::mem::size_of::<f32>()
         )
     })
 }

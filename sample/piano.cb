@@ -1,0 +1,7 @@
+#Title square C
+
+'op 0 0 0 0 255 20
+
+@piano op sine
+
+A: @piano c1

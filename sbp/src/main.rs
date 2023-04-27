@@ -15,8 +15,14 @@ fn main() {
         std::io::stdout().flush().unwrap();
         let mut inp = String::new();
         std::io::stdin().read_line(&mut inp).unwrap();
-        let inp = inp.trim().split(' ').collect::<Vec<&str>>();
-        if inp[0] == "quit" {
+        let inp = inp.trim();
+        let inp = inp
+            .trim()
+            .split(' ')
+            .filter(|n| n.len() > 0)
+            .collect::<Vec<&str>>();
+        if inp.len() == 0 {
+        } else if inp[0] == "quit" {
             break;
         } else if inp[0] == "play" {
             cmd_song_control(&app, inp, |app, idx| app.play(idx));
@@ -27,7 +33,7 @@ fn main() {
         } else if inp[0] == "stop" {
             cmd_song_control(&app, inp, |app, idx| app.stop(idx));
         } else {
-            println!("sbp warning: invalid command '{}'", inp[0]);
+            println!("warning: invalid command '{}'", inp[0]);
         }
     }
 
@@ -39,14 +45,14 @@ fn main() {
 
 fn cmd_song_control(app: &SbApp, inp: Vec<&str>, f: fn(&SbApp, usize) -> Result<(), String>) {
     if inp.len() != 2 {
-        println!("sbp warning: parameter not found");
+        println!("warning: parameter not found");
+        return;
     }
     if let Ok(n) = inp[1].parse::<usize>() {
-        match f(app, n) {
-            Ok(()) => (),
-            Err(e) => println!("sbp warning: {e}"),
+        if let Err(e) = f(app, n) {
+            println!("warning: {e}");
         }
     } else {
-        println!("sbp warning: invalid parameter '{}' found", inp[1]);
+        println!("warning: invalid parameter '{}' found", inp[1]);
     }
 }

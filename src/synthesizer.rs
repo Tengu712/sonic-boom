@@ -3,17 +3,14 @@ use super::{dat::*, *};
 const MAX_AMPLITUDE: f32 = WaveData::MAX as f32;
 const PER_SAMPLE_RATE: f32 = 1.0 / SAMPLE_RATE as f32;
 
-pub(super) enum AlgorythmCmd {
-    RUN(usize),
-}
-
 // TODO: implement envelope
 pub(super) fn synthesize(
     part: PartBlock,
     operators: &Vec<OperatorBlock>,
-    algorythm: &Vec<AlgorythmCmd>,
+    algorythms: &Vec<AlgorythmBlock>,
 ) -> WaveBuffer {
     let notes = part.notes;
+    let commands = &algorythms[part.algorythm_id as usize].commands;
     let buffer_size = notes[notes.len() - 1].time + notes[notes.len() - 1].gate;
     let buffer_size = buffer_size as usize;
     let mut living_head = 0;
@@ -30,7 +27,7 @@ pub(super) fn synthesize(
                 living_head += 1;
                 continue;
             }
-            v += eval(&notes[i], operators, algorythm, t_u32 - time);
+            v += eval(&notes[i], operators, commands, t_u32 - time);
         }
         let v = v.min(1.0);
         let v = (MAX_AMPLITUDE * v) as WaveData;
@@ -41,19 +38,25 @@ pub(super) fn synthesize(
 
 /// A private function to evaluate the amplitude of a note in just one sample.
 /// The value of `t` is between 0 and note.gate.
-fn eval(note: &NoteBlock, operators: &Vec<OperatorBlock>, algorythm: &Vec<AlgorythmCmd>, t: u32) -> f32 {
+fn eval(
+    note: &NoteBlock,
+    operators: &Vec<OperatorBlock>,
+    commands: &Vec<AlgorythmCommandBlock>,
+    t: u32,
+) -> f32 {
     let t_f32 = t as f32;
     let f = note.frequency * PER_SAMPLE_RATE;
     let mut v = 0.0;
     // do algorythm
-    for cmd in algorythm {
-        match cmd {
-            AlgorythmCmd::RUN(n) => {
-                let op = &operators[*n];
+    for n in commands {
+        match n.command_id {
+            ALGORYTHM_COMMAND_PM => {
+                let op = &operators[n.operator_id as usize];
                 let total = op.total as f32 / 255.0;
                 let multiple = op.multiple as f32 / 10.0;
                 v = sine_wave(total, multiple * f, t_f32, v);
             }
+            c => panic!("sonic-boom error: invalid algorythm command id '{c}' found"),
         }
     }
     // remove click noise

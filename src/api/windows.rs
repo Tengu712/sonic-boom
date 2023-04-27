@@ -92,7 +92,7 @@ const FORMAT: WAVEFORMATEX = WAVEFORMATEX {
 pub(crate) type AudioPlayer = HWAVEOUT;
 
 impl super::AudioPlayerImpl for AudioPlayer {
-    fn new() -> Result<Self, String> {
+    fn new() -> Result<Self> {
         let mut wave_out = std::ptr::null();
         let res = unsafe { waveOutOpen(&mut wave_out, WAVE_MAPPER, &FORMAT, 0, 0, CALLBACK_NULL) };
         if res != MMSYSERR_NOERROR || wave_out == std::ptr::null() {
@@ -101,7 +101,7 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(wave_out)
         }
     }
-    fn pause(&self) -> Result<(), String> {
+    fn pause(&self) -> Result<()> {
         let res = unsafe { waveOutPause(*self) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to pause a player : {}", res))
@@ -109,7 +109,7 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(())
         }
     }
-    fn resume(&self) -> Result<(), String> {
+    fn resume(&self) -> Result<()> {
         let res = unsafe { waveOutRestart(*self) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to resume a player : {}", res))
@@ -117,7 +117,7 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(())
         }
     }
-    fn reset(&self) -> Result<(), String> {
+    fn reset(&self) -> Result<()> {
         let res = unsafe { waveOutReset(*self) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to reset a player : {}", res))
@@ -125,7 +125,7 @@ impl super::AudioPlayerImpl for AudioPlayer {
             Ok(())
         }
     }
-    fn close(self) -> Result<(), String> {
+    fn close(self) -> Result<()> {
         let res = unsafe { waveOutClose(self) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to close a player : {}", res))
@@ -145,7 +145,7 @@ pub(crate) struct AudioHandle {
 }
 
 impl super::AudioHandleImpl<AudioPlayer> for AudioHandle {
-    fn new(player: &AudioPlayer, buffer: &WaveBuffer) -> Result<Self, String> {
+    fn new(player: &AudioPlayer, buffer: &WaveBuffer) -> Result<Self> {
         let mut header = WAVEHDR {
             lpData: buffer.as_ptr() as LPSTR,
             dwBufferLength: (buffer.len() * SIZEOF_SHORT) as DWORD,
@@ -167,7 +167,7 @@ impl super::AudioHandleImpl<AudioPlayer> for AudioHandle {
         }
     }
 
-    fn play(&self) -> Result<(), String> {
+    fn play(&self) -> Result<()> {
         let res = unsafe { waveOutWrite(self.player, &self.header, SIZEOF_HEADER as UINT) };
         if res != MMSYSERR_NOERROR {
             Err(format!("failed to play wave audio : {}", res))
@@ -176,7 +176,7 @@ impl super::AudioHandleImpl<AudioPlayer> for AudioHandle {
         }
     }
 
-    fn close(mut self) -> Result<(), String> {
+    fn close(mut self) -> Result<()> {
         let res =
             unsafe { waveOutUnprepareHeader(self.player, &mut self.header, SIZEOF_HEADER as UINT) };
         if res != MMSYSERR_NOERROR {

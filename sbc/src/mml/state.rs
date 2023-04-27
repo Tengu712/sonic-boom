@@ -7,9 +7,8 @@ use super::command::*;
 // ================================================================================================================= //
 
 pub(super) struct State {
-    /// The result.
-    /// block.part_id is set when resolving part name.
-    pub(super) block: PartBlock,
+    pub(super) notes: Vec<NoteBlock>,
+    pub(super) algorythm_name: String,
     /// Current timestamp that represents the current time of the song being played.
     time: u32,
     /// Current octave.
@@ -26,11 +25,8 @@ pub(super) struct State {
 impl State {
     pub(super) fn new() -> Self {
         Self {
-            block: PartBlock {
-                part_id: 0,
-                source_id: 0,
-                notes: Vec::new(),
-            },
+            notes: Vec::new(),
+            algorythm_name: String::from("@sine"),
             time: 0,
             octave: 0,
             spb: 0.5,
@@ -38,17 +34,13 @@ impl State {
             volume: 0.6,
         }
     }
-    pub(super) fn update(&mut self, command: &Command) -> Result<(), String> {
+    pub(super) fn update(&mut self, command: &Command) -> Result<()> {
         match command {
-            Command::Note(detail) => self.for_note(detail),
-            Command::Octave(v) => {
-                self.octave = *v as i32 - 4;
-                Ok(())
-            }
+            Command::Note(detail) => self.for_note(detail)?,
+            Command::Octave(v) => self.octave = *v as i32 - 4,
             Command::OctaveUp => {
                 if self.octave < 4 {
                     self.octave += 1;
-                    Ok(())
                 } else {
                     return Err(String::from("octave must be between 1 and 8"));
                 }
@@ -56,20 +48,15 @@ impl State {
             Command::OctaveDown => {
                 if self.octave > -3 {
                     self.octave -= 1;
-                    Ok(())
                 } else {
                     return Err(String::from("octave must be between 1 and 8"));
                 }
             }
-            Command::Long(v) => {
-                self.long = *v as f32;
-                Ok(())
-            }
-            Command::Volume(v) => {
-                self.volume = *v as f32 / MMLNumType::MAX as f32;
-                Ok(())
-            }
+            Command::Long(v) => self.long = *v as f32,
+            Command::Volume(v) => self.volume = *v as f32 / MMLNumType::MAX as f32,
+            Command::Algorythm(s) => self.algorythm_name = s.clone(),
         }
+        Ok(())
     }
 }
 
@@ -81,7 +68,7 @@ const INTERVAL: f32 = 1.05946309435929526456182529494634170077920431749418562855
 const INTERVAL_REV: f32 = 0.9438743126816934966419131566675343760075683033387428137421251423;
 
 impl State {
-    fn for_note(&mut self, detail: &NoteCommandDetail) -> Result<(), String> {
+    fn for_note(&mut self, detail: &NoteCommandDetail) -> Result<()> {
         let long = if detail.long > 0 {
             detail.long as f32
         } else {
@@ -97,7 +84,7 @@ impl State {
             NoteName::A => (440.000, 1.0),
             NoteName::B => (493.883, 1.0),
             NoteName::X => {
-                if let Some(last) = self.block.notes.last() {
+                if let Some(last) = self.notes.last() {
                     (last.frequency, 1.0)
                 } else {
                     return Err(String::from("The note `x` must not be the first note"));
@@ -121,7 +108,7 @@ impl State {
             amplitude: a * self.volume,
         };
         self.time += gate;
-        self.block.notes.push(note);
+        self.notes.push(note);
         Ok(())
     }
 }

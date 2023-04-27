@@ -1,91 +1,132 @@
+mod algorythm;
 mod command;
+mod operator;
 mod state;
 
 use sbl::dat::*;
 use std::collections::HashMap;
 
 type MMLNumType = u8;
+type Result<T> = std::result::Result<T, String>;
 
-/// TODO: title, bpm, etc.
-pub(super) struct ParsingResult {
-    pub(super) operators: HashMap<String, OperatorBlock>,
-    pub(super) parts: HashMap<String, PartBlock>,
+pub(super) struct ParsingParameter {
+    pub(super) ops: Vec<Option<OperatorBlock>>,
+    pub(super) op_map: HashMap<String, u8>,
+    pub(super) algs: Vec<Option<AlgorythmBlock>>,
+    pub(super) alg_map: HashMap<String, u8>,
+    pub(super) part_map: HashMap<String, u8>,
+}
+impl ParsingParameter {
+    pub(super) fn new() -> Self {
+        // operator
+        let ops = Vec::from([Some(OperatorBlock {
+            attack: 0,
+            decay: 0,
+            sustain: 0,
+            release: 0,
+            total: 255,
+            multiple: 10,
+        })]);
+        let op_map = HashMap::from([(String::from("sine"), 0)]);
+        // algorythm
+        let commands = Vec::from([AlgorythmCommandBlock {
+            command_id: ALGORYTHM_COMMAND_PM,
+            operator_id: 0,
+        }]);
+        let algs = Vec::from([Some(AlgorythmBlock { commands })]);
+        let alg_map = HashMap::from([(String::from("@sine"), 0)]);
+        // finish
+        Self {
+            ops,
+            op_map,
+            algs,
+            alg_map,
+            part_map: HashMap::new(),
+        }
+    }
 }
 
-/// A function to parse and simulate a mml file.
-/// It returns a hash-map whose key is a user-defined part name
-/// and whose value is PartBlock struct whose part_id and source_id is not set.
-pub(super) fn parse(lines: Vec<String>) -> Result<ParsingResult, String> {
-    use command::Command;
-    use state::State;
-
+pub(super) fn parse(lines: Vec<String>, param: &mut ParsingParameter) -> Result<SongBlock> {
     let mut lc = 0;
-    let operators = HashMap::new();
-
-    // headers
-    while lc < lines.len() && lines[lc].starts_with('#') {
-        if let Some((_, _)) = lines[lc].split_once(' ') {
-            // TODO: title, bpm, etc.
-        } else {
-            return Err(format!(
-                "parameter for a header '{}' not found : {} line",
-                lines[lc], lc
-            ));
-        }
-        lc += 1;
-    }
-
-    // TODO: audio sources
-
-    // score
     let mut states = HashMap::new();
     while lc < lines.len() {
+        // skip white line
         let line = lines[lc].trim();
         if line.len() == 0 {
             lc += 1;
             continue;
         }
-        if let Some((parts, command_line)) = lines[lc].split_once(':') {
-            // parse commands
+        // header
+        else if line.starts_with('#') {
+            if let Some((_, _)) = line.split_once(' ') {
+                // TODO: title, bpm, etc.
+            } else {
+                return Err(format!(
+                    "parameter for a header '{}' not found : {} line",
+                    line, lc
+                ));
+            }
+        }
+        // operator
+        else if line.starts_with('\'') {
+            operator::parse(line, param).map_err(|e| format!("{} : {} line", e, lc + 1))?;
+        }
+        // algorythm
+        else if line.starts_with('@') {
+            algorythm::parse(line, param).map_err(|e| format!("{} : {} line", e, lc + 1))?;
+        }
+        // parts
+        else if let Some((parts, cl)) = line.split_once(':') {
             let mut cc = 0;
             let mut commands = Vec::new();
-            let chars = command_line.chars().collect::<Vec<char>>();
+            let chars = cl.trim().chars().collect::<Vec<char>>();
             while cc < chars.len() {
-                match Command::from(&chars, cc) {
-                    Ok((command, new_cc)) => {
-                        commands.push(command);
-                        cc = new_cc;
-                    }
-                    Err(e) => {
-                        return Err(format!("{} : {} line", e, lc + 1,));
-                    }
-                }
+                // TODO:
+                commands.push(
+                    command::Command::from(&chars, &mut cc)
+                        .map_err(|e| format!("{} : {} line", e, lc + 1))?,
+                );
             }
-            // apply to all of parts
             let parts = parts.split(',').collect::<Vec<&str>>();
-            for part in parts {
-                let part = part.to_string();
-                if !states.contains_key(&part) {
-                    states.insert(part.clone(), State::new());
+            for n in parts {
+                if !states.contains_key(n) {
+                    states.insert(n.to_string(), state::State::new());
                 }
-                let state = states.get_mut(&part).unwrap();
-                for command in &commands {
-                    match state.update(command) {
-                        Ok(()) => (),
-                        Err(e) => return Err(format!("{} : {} line", e, lc + 1)),
-                    }
+                let state = states.get_mut(n).unwrap();
+                for m in commands.iter() {
+                    state.update(m)?;
                 }
             }
-        } else {
+        }
+        // error
+        else {
             return Err(format!("parts not declarated : {} line", lc + 1));
         }
         lc += 1;
     }
-
     // build up
-    let mut parts = HashMap::new();
+    let mut parts = Vec::new();
     for (k, v) in states {
-        parts.insert(k, v.block);
+        let part_id = if let Some(n) = param.part_map.get(&k) {
+            *n
+        } else {
+            let res = param.part_map.len() as u8;
+            param.part_map.insert(k, res);
+            res
+        };
+        let algorythm_id = if let Some(n) = param.alg_map.get(&v.algorythm_name) {
+            *n
+        } else {
+            let res = param.algs.len() as u8;
+            param.alg_map.insert(v.algorythm_name, res);
+            param.algs.push(None);
+            res
+        };
+        parts.push(PartBlock {
+            part_id,
+            algorythm_id,
+            notes: v.notes,
+        });
     }
-    Ok(ParsingResult { operators, parts })
+    Ok(SongBlock { parts })
 }
